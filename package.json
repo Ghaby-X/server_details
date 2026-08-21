@@ -1,0 +1,13 @@
+{
+  "name": "lab-dom07-server-details",
+  "version": "1.0.0",
+  "description": "Zero-dependency Node.js server application reporting real-time server metrics",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
