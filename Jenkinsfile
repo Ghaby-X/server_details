@@ -27,14 +27,9 @@ pipeline {
             }
         }
 
-        // Runs inside the same node:22-alpine image the app ships in, so the
-        // Jenkins host itself only ever needs Docker - never a local Node install.
         stage('Install & Build') {
             steps {
-                sh '''
-                    docker run --rm -v "$PWD:/app" -w /app node:22-alpine \
-                        npm install --no-audit --no-fund
-                '''
+                sh 'npm install --no-audit --no-fund'
             }
         }
 
@@ -42,8 +37,7 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p test-results
-                    docker run --rm -e NODE_NO_WARNINGS=1 -v "$PWD:/app" -w /app node:22-alpine \
-                        node --test --test-reporter=junit --test-reporter-destination=test-results/junit.xml
+                    node --test --test-reporter=junit --test-reporter-destination=test-results/junit.xml
                 '''
             }
             post {

@@ -62,8 +62,8 @@ The `Jenkinsfile` at the repo root defines the pipeline. Point a Jenkins Pipelin
 | Stage | What it does |
 |---|---|
 | Checkout | Clones this repo at the built commit |
-| Install & Build | `npm install` inside a throwaway `node:22-alpine` container (the Jenkins host itself never needs Node installed - only Docker) |
-| Test | `node --test` in the same container, JUnit results published via the `junit` step |
+| Install & Build | `npm install` directly on the Jenkins host |
+| Test | `node --test`, JUnit results published via the `junit` step |
 | Docker Build | `docker build`, tagged `:$BUILD_NUMBER` and `:latest` |
 | Push Image | Logs in with the `registry_creds` credential, pushes both tags to Docker Hub |
 | Deploy | SSHes to the EC2 deploy target with the `ec2_ssh` credential, pulls the new image, replaces the running container |
@@ -101,7 +101,7 @@ The deploy target only needs Docker installed and reachable over SSH from the Je
 - `IMAGE_NAME` - your Docker Hub repo, e.g. `yourdockerhubuser/lab-dom07-server-details`.
 
 **Requirements on each host:**
-- Jenkins host: Docker installed, `jenkins` user in the `docker` group (build/test/push all shell out to `docker`).
+- Jenkins host: Node.js and Docker installed, `jenkins` user in the `docker` group (build/test run directly; push/deploy shell out to `docker`).
 - Deploy target: Docker installed, reachable over SSH from the Jenkins host as `ec2-user` on port 22, and the app port (3000) reachable from wherever you're verifying it from.
 
 ### Verifying a run
