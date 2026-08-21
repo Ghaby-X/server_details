@@ -1,14 +1,7 @@
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'DEPLOY_HOST', defaultValue: env.DEPLOY_HOST ?: '', description: 'Public IP/DNS of the EC2 deploy target - falls back to the Global property of the same name if set')
-        string(name: 'IMAGE_NAME', defaultValue: env.IMAGE_NAME ?: 'yourdockerhubuser/lab-dom07-server-details', description: 'Docker Hub repo to push the image to - falls back to the Global property of the same name if set')
-    }
-
     environment {
-        DEPLOY_HOST    = "${params.DEPLOY_HOST}"
-        IMAGE_NAME     = "${params.IMAGE_NAME}"
         IMAGE_TAG      = "${env.BUILD_NUMBER}"
         DEPLOY_USER    = 'ec2-user'
         APP_PORT       = '3000'

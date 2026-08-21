@@ -95,10 +95,12 @@ The deploy target only needs Docker installed and reachable over SSH from the Je
 | `registry_creds` | Username with password | Docker Hub username + access token |
 | `ec2_ssh` | SSH Username with private key | The private key for the deploy target's `ec2-user` |
 
-**Pipeline job parameters** - set when running the build (or as job defaults):
+**Global properties** (Manage Jenkins → System → Environment variables) - set once, applied to every build:
 
 - `DEPLOY_HOST` - public IP/DNS of the EC2 deploy target.
-- `IMAGE_NAME` - your Docker Hub repo, e.g. `yourdockerhubuser/lab-dom07-server-details`.
+- `IMAGE_NAME` - your Docker Hub repo, e.g. `ghaby/lab-dom07-server-details`.
+
+These aren't build parameters - the Jenkinsfile has no `parameters` block. Jenkins injects Global properties as real environment variables into every build automatically, so they're just used directly as `$DEPLOY_HOST` / `$IMAGE_NAME`. Change either one by updating it here; no need to touch the Jenkinsfile or re-enter values per build.
 
 **Requirements on each host:**
 - Jenkins host: Node.js and Docker installed, `jenkins` user in the `docker` group (build/test run directly; push/deploy shell out to `docker`).
