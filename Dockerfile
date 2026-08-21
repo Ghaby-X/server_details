@@ -1,5 +1,7 @@
 FROM node:22-alpine
 
+LABEL app=lab-dom07-server-details
+
 WORKDIR /app
 
 COPY package.json server.js ./

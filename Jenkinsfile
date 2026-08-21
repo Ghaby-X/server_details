@@ -99,15 +99,13 @@ pipeline {
 
         stage('Cleanup') {
             steps {
-                // Prune anything older than a day on the deploy target, so a
-                // rollback to yesterday's tag is still possible if needed.
                 sshagent(credentials: ['ec2_ssh']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
-                            "docker image prune -af --filter until=24h && docker container prune -f --filter until=24h"
+                            "docker image prune -af --filter until=24h --filter label=app=lab-dom07-server-details && docker container prune -f --filter until=24h --filter label=app=lab-dom07-server-details"
                     '''
                 }
-                sh 'docker image prune -f || true'
+                sh 'docker image prune -f --filter label=app=lab-dom07-server-details || true'
             }
         }
     }
