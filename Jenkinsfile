@@ -3,9 +3,6 @@ pipeline {
 
     environment {
         IMAGE_TAG      = "${env.BUILD_NUMBER}"
-        DEPLOY_USER    = 'ec2-user'
-        APP_PORT       = '3000'
-        CONTAINER_NAME = 'server-details-app'
     }
 
     options {
