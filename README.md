@@ -1,6 +1,6 @@
 # lab-dom07-server-details
 
-A zero-dependency Node.js server reporting real-time host system metrics (hostname, CPU, memory, uptime), built, tested, containerized, and deployed to an EC2 host by a Jenkins pipeline.
+A zero-dependency Node.js server reporting real-time host system metrics (hostname, CPU, memory, uptime), built, tested, containerized, and deployed to an EC2 host by a Jenkins pipeline
 
 ## Features
 
