@@ -8,6 +8,8 @@ A zero-dependency Node.js server reporting real-time host system metrics (hostna
 - **REST APIs**:
   - `GET /api/server-info` - live host telemetry.
   - `GET /api/config` - runtime config the frontend dashboard polls for.
+  - `GET /api/fail` - always returns `500`; exists to generate error traffic for the error-rate dashboard/alert (see [lab-dom08-monitoring](../lab-dom08-monitoring)).
+  - `GET /metrics` - Prometheus text-format exposition (`http_requests_total` counter, `http_request_duration_seconds` histogram, process gauges).
   - `GET /` - the dashboard itself (static HTML/CSS/JS).
 
 ## Structure
@@ -16,7 +18,8 @@ A zero-dependency Node.js server reporting real-time host system metrics (hostna
 lab-dom07-server-details/
 ├── server.js              HTTP server + routes (http, os, fs - no npm dependencies)
 ├── lib/
-│   └── format.js          Pure formatting helpers (formatMemory, formatUptime) - unit tested in isolation
+│   ├── format.js          Pure formatting helpers (formatMemory, formatUptime) - unit tested in isolation
+│   └── metrics.js         Zero-dependency Prometheus collector backing GET /metrics
 ├── test/
 │   ├── format.test.js     Unit tests for lib/format.js
 │   └── server.test.js     Integration tests - boots the real server on an ephemeral port, hits every route

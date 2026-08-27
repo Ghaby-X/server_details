@@ -42,3 +42,22 @@ test('GET /nope returns 404 for unknown static paths', async () => {
     const res = await fetch(`${baseUrl}/nope`);
     assert.equal(res.status, 404);
 });
+
+test('GET /metrics exposes Prometheus text format', async () => {
+    const res = await fetch(`${baseUrl}/metrics`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type'), /text\/plain/);
+    const body = await res.text();
+    assert.match(body, /^# HELP http_requests_total/m);
+    assert.match(body, /^# TYPE http_requests_total counter/m);
+    assert.match(body, /^http_requests_total\{method="GET",route="\/",status_code="200"\} \d+/m);
+    assert.match(body, /^# TYPE http_request_duration_seconds histogram/m);
+    assert.match(body, /^process_uptime_seconds \d/m);
+});
+
+test('GET /api/fail returns a 500 for error-rate testing', async () => {
+    const res = await fetch(`${baseUrl}/api/fail`);
+    assert.equal(res.status, 500);
+    const body = await res.json();
+    assert.equal(typeof body.error, 'string');
+});

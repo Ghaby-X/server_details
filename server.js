@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { formatMemory, formatUptime } = require('./lib/format');
+const { recordRequest, renderMetrics, normalizeRoute } = require('./lib/metrics');
 
 // Configurable Environment Variables with sensible fallbacks
 const PORT = process.env.PORT || 3000;
@@ -21,8 +22,27 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+    const requestStart = process.hrtime.bigint();
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsedUrl.pathname;
+    const route = normalizeRoute(pathname);
+
+    res.on('finish', () => {
+        const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1e9;
+        recordRequest(req.method, route, res.statusCode, durationSeconds);
+    });
+
+    // Observability: Prometheus scrape endpoint
+    if (pathname === '/metrics') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
+        return res.end(renderMetrics());
+    }
+
+    // Diagnostics: on-demand 500, for exercising error-rate dashboards/alerts
+    if (pathname === '/api/fail') {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ error: 'Simulated failure for error-rate testing' }));
+    }
 
     // API: Frontend Runtime Configuration
     if (pathname === '/api/config') {
