@@ -5,6 +5,7 @@ const path = require('path');
 
 const { formatMemory, formatUptime } = require('./lib/format');
 const { recordRequest, renderMetrics, normalizeRoute } = require('./lib/metrics');
+const { log } = require('./lib/logger');
 
 // Configurable Environment Variables with sensible fallbacks
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,20 @@ const server = http.createServer((req, res) => {
     res.on('finish', () => {
         const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1e9;
         recordRequest(req.method, route, res.statusCode, durationSeconds);
+
+        // Access log to stdout - this is what the Docker awslogs driver
+        // actually ships to CloudWatch Logs, so every request needs to
+        // land here.
+        log({
+            method: req.method,
+            path: pathname,
+            route,
+            status: res.statusCode,
+            durationMs: Math.round(durationSeconds * 1000),
+            clientIp: req.headers['x-forwarded-for']
+                ? req.headers['x-forwarded-for'].split(',')[0].trim()
+                : req.socket.remoteAddress || null
+        });
     });
 
     // Observability: Prometheus scrape endpoint
