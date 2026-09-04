@@ -5,7 +5,7 @@ const path = require('path');
 
 const { formatMemory, formatUptime } = require('./lib/format');
 const { recordRequest, renderMetrics, normalizeRoute } = require('./lib/metrics');
-const { log } = require('./lib/logger');
+const logger = require('./lib/logger');
 const { tracer } = require('./lib/tracer');
 
 // Configurable Environment Variables with sensible fallbacks
@@ -71,8 +71,9 @@ const server = http.createServer((req, res) => {
         const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1e9;
         recordRequest(req.method, route, res.statusCode, durationSeconds);
 
-        // Access log to stdout
-        log({
+        // Access log to stdout - level derived from the response status,
+        // so CloudWatch Logs Insights can filter to just errors/warnings.
+        const accessLogFields = {
             method: req.method,
             path: pathname,
             route,
@@ -81,7 +82,15 @@ const server = http.createServer((req, res) => {
             clientIp: req.headers['x-forwarded-for']
                 ? req.headers['x-forwarded-for'].split(',')[0].trim()
                 : req.socket.remoteAddress || null
-        });
+        };
+
+        if (res.statusCode >= 500) {
+            logger.error(accessLogFields);
+        } else if (res.statusCode >= 400) {
+            logger.warn(accessLogFields);
+        } else {
+            logger.info(accessLogFields);
+        }
     });
 
     // Observability: Prometheus scrape endpoint

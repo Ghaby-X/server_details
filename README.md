@@ -13,7 +13,7 @@ A Node.js server reporting real-time host system metrics (hostname, CPU, memory,
   - `GET /metrics` - Prometheus text-format exposition (`http_requests_total` counter, `http_request_duration_seconds` histogram, process gauges).
   - `GET /` - the dashboard itself (static HTML/CSS/JS).
 - **Distributed tracing** - every request gets an OpenTelemetry span automatically (HTTP server auto-instrumentation); `collectServerInfo()` adds one manual span on top, showing span nesting driven purely by call-site context. See [Distributed tracing](#distributed-tracing-opentelemetry) below.
-- **Structured JSON access logs** - one line per request to stdout (method, path, status, duration, client IP), automatically tagged with `traceId`/`spanId` when a trace is active - what the Docker `awslogs` driver ships to CloudWatch Logs in [lab-dom08-monitoring](../lab-dom08-monitoring).
+- **Structured JSON access logs** - one line per request to stdout (method, path, status, duration, client IP), with a `level` (`info`/`warn`/`error`, derived from the response status: 5xx → error, 4xx → warn, else info) so CloudWatch Logs Insights can filter by severity, and automatically tagged with `traceId`/`spanId` when a trace is active - what the Docker `awslogs` driver ships to CloudWatch Logs in [lab-dom08-monitoring](../lab-dom08-monitoring).
 
 ## Structure
 
