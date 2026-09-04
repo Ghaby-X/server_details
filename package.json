@@ -1,10 +1,10 @@
 {
   "name": "lab-dom07-server-details",
   "version": "1.0.0",
-  "description": "Zero-dependency Node.js server application reporting real-time server metrics",
+  "description": "Node.js server application reporting real-time server metrics, instrumented with OpenTelemetry",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --require ./tracing.js server.js",
     "test": "node --test"
   },
   "engines": {
