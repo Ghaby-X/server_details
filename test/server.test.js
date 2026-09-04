@@ -61,3 +61,13 @@ test('GET /api/fail returns a 500 for error-rate testing', async () => {
     const body = await res.json();
     assert.equal(typeof body.error, 'string');
 });
+
+test('GET /api/slow returns 200 after an artificial delay, for latency-alert testing', async () => {
+    const start = Date.now();
+    const res = await fetch(`${baseUrl}/api/slow`);
+    const elapsedMs = Date.now() - start;
+    assert.equal(res.status, 200);
+    assert.ok(elapsedMs >= 400, `expected at least 400ms delay, took ${elapsedMs}ms`);
+    const body = await res.json();
+    assert.equal(typeof body.message, 'string');
+});

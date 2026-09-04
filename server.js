@@ -6,6 +6,7 @@ const path = require('path');
 const { formatMemory, formatUptime } = require('./lib/format');
 const { recordRequest, renderMetrics, normalizeRoute } = require('./lib/metrics');
 const { log } = require('./lib/logger');
+const { tracer } = require('./lib/tracer');
 
 // Configurable Environment Variables with sensible fallbacks
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,44 @@ const MIME_TYPES = {
     '.svg': 'image/svg+xml'
 };
 
+// Gathers live OS/process stats into the /api/server-info response body.
+function collectServerInfo(req) {
+    return tracer.startActiveSpan('collect-server-info', (span) => {
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+        const memUsagePercent = ((usedMem / totalMem) * 100).toFixed(1);
+
+        const cpus = os.cpus();
+        const loadAvg = os.loadavg();
+
+        const clientIp = req.headers['x-forwarded-for']
+            ? req.headers['x-forwarded-for'].split(',')[0].trim()
+            : req.socket.remoteAddress || '127.0.0.1';
+
+        const info = {
+            hostname: HOSTNAME,
+            platform: `${os.type()} ${os.release()} (${os.arch()})`,
+            uptime: formatUptime(os.uptime()),
+            uptimeSeconds: Math.floor(os.uptime()),
+            cpuModel: cpus.length > 0 ? cpus[0].model.trim() : 'Generic CPU',
+            cpuCores: cpus.length,
+            cpuLoadAvg: `${loadAvg[0].toFixed(2)}, ${loadAvg[1].toFixed(2)}, ${loadAvg[2].toFixed(2)}`,
+            totalMemory: formatMemory(totalMem),
+            freeMemory: formatMemory(freeMem),
+            usedMemory: formatMemory(usedMem),
+            memoryUsagePercent: `${memUsagePercent}%`,
+            nodeVersion: process.version,
+            listeningPort: PORT,
+            clientIp: clientIp,
+            serverTime: new Date().toISOString()
+        };
+
+        span.end();
+        return info;
+    });
+}
+
 const server = http.createServer((req, res) => {
     const requestStart = process.hrtime.bigint();
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -32,9 +71,7 @@ const server = http.createServer((req, res) => {
         const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1e9;
         recordRequest(req.method, route, res.statusCode, durationSeconds);
 
-        // Access log to stdout - this is what the Docker awslogs driver
-        // actually ships to CloudWatch Logs, so every request needs to
-        // land here.
+        // Access log to stdout
         log({
             method: req.method,
             path: pathname,
@@ -59,6 +96,18 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ error: 'Simulated failure for error-rate testing' }));
     }
 
+    // Diagnostics: on-demand artificial latency, for exercising the latency alert
+    if (pathname === '/api/slow') {
+        const delayMs = 400;
+        return setTimeout(() => {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                message: `Simulated slow response after ${delayMs}ms`,
+                serverInfo: collectServerInfo(req)
+            }));
+        }, delayMs);
+    }
+
     // API: Frontend Runtime Configuration
     if (pathname === '/api/config') {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -69,36 +118,8 @@ const server = http.createServer((req, res) => {
 
     // API: Live Real-Time Server System Metrics
     if (pathname === '/api/server-info') {
-        const totalMem = os.totalmem();
-        const freeMem = os.freemem();
-        const usedMem = totalMem - freeMem;
-        const memUsagePercent = ((usedMem / totalMem) * 100).toFixed(1);
-
-        const cpus = os.cpus();
-        const loadAvg = os.loadavg();
-
-        const clientIp = req.headers['x-forwarded-for']
-            ? req.headers['x-forwarded-for'].split(',')[0].trim()
-            : req.socket.remoteAddress || '127.0.0.1';
-
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify({
-            hostname: HOSTNAME,
-            platform: `${os.type()} ${os.release()} (${os.arch()})`,
-            uptime: formatUptime(os.uptime()),
-            uptimeSeconds: Math.floor(os.uptime()),
-            cpuModel: cpus.length > 0 ? cpus[0].model.trim() : 'Generic CPU',
-            cpuCores: cpus.length,
-            cpuLoadAvg: `${loadAvg[0].toFixed(2)}, ${loadAvg[1].toFixed(2)}, ${loadAvg[2].toFixed(2)}`,
-            totalMemory: formatMemory(totalMem),
-            freeMemory: formatMemory(freeMem),
-            usedMemory: formatMemory(usedMem),
-            memoryUsagePercent: `${memUsagePercent}%`,
-            nodeVersion: process.version,
-            listeningPort: PORT,
-            clientIp: clientIp,
-            serverTime: new Date().toISOString()
-        }));
+        return res.end(JSON.stringify(collectServerInfo(req)));
     }
 
     // Serve Static Frontend Assets
